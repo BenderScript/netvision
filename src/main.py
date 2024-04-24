@@ -155,8 +155,6 @@ async def handle_image_upload(uploaded_file):
             ]
         }
     ]
-    # for _ in range(50):
-    #     append_message_list(PROMPT_MESSAGES)
     append_message_list(PROMPT_MESSAGES)
     assistant_response = await chat_with_model(st.session_state['messages'])
     append_message("assistant", assistant_response)

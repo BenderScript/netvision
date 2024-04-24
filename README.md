@@ -9,6 +9,12 @@ This application leverages Streamlit and OpenAI's GPT-4V model to analyze networ
 - Interactive chat interface to discuss and query network topology features.
 - Session state management to maintain interaction history.
 
+## Application Demo
+
+See the application in action:
+
+![Network Topology Visualization](./resources/gifs/netvision.gif)
+
 ## Prerequisites
 
 - Python 3.12+
