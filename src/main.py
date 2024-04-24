@@ -62,14 +62,31 @@ async def chat_with_model(session_messages):
             elif finish_reason == 'stop':
                 print("Response stopped due to reaching a stop sequence.")
 
-        return content
-    except openai.error.InvalidRequestError as e:
-        if "tokens" in str(e):
-            print("Error: The prompt is too large for the context or the response limit was exceeded.")
-        else:
-            print(f"An unexpected InvalidRequestError occurred: {e}")
-    except openai.error.OpenAIError as e:
-        print(f"OpenAI Error: {e}")
+            return content
+    except openai.BadRequestError as e:  # Don't forget to add openai
+        # Handle error 400
+        print(f"Error 400: {e}")
+    except openai.AuthenticationError as e:  # Don't forget to add openai
+        # Handle error 401
+        print(f"Error 401: {e}")
+    except openai.PermissionDeniedError as e:  # Don't forget to add openai
+        # Handle error 403
+        print(f"Error 403: {e}")
+    except openai.NotFoundError as e:  # Don't forget to add openai
+        # Handle error 404
+        print(f"Error 404: {e}")
+    except openai.UnprocessableEntityError as e:  # Don't forget to add openai
+        # Handle error 422
+        print(f"Error 422: {e}")
+    except openai.RateLimitError as e:  # Don't forget to add openai
+        # Handle error 429
+        print(f"Error 429: {e}")
+    except openai.InternalServerError as e:  # Don't forget to add openai
+        # Handle error >=500
+        print(f"Error >=500: {e}")
+    except openai.APIConnectionError as e:  # Don't forget to add openai
+        # Handle API connection error
+        print(f"API connection error: {e}")
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
 
@@ -163,30 +180,34 @@ async def handle_image_upload(uploaded_file):
 
 st.title('Interactive Networking Image Analysis with GPT-4 Vision')
 
-uploaded_file = st.file_uploader("Upload your image", type=['png', 'jpg', 'jpeg'], key="file_uploader",
-                                 help="Supported formats: PNG, JPG, JPEG")
 
-if uploaded_file is not None:
-    # Load the image using PIL
-    image = Image.open(uploaded_file)
-    # Extract width and height
-    width, height = image.size
-    st.write(f"Uploaded image dimensions: {width} x {height}")
-    # Calculate tokens required for this image
-    tokens_needed = calculate_image_tokens(width, height)
-    st.write(f"Estimated token count for image processing: {tokens_needed}")
+with st.sidebar:
+    if uploaded_file := st.file_uploader("Upload your image", type=['png', 'jpg', 'jpeg'], key="file_uploader",
+                                     help="Supported formats: PNG, JPG, JPEG"):
+        # Load the image using PIL
+        image = Image.open(uploaded_file)
+        # Extract width and height
+        width, height = image.size
+        st.write(f"Uploaded image dimensions: {width} x {height}")
+        # Calculate tokens required for this image
+        tokens_needed = calculate_image_tokens(width, height)
+        st.write(f"Estimated token count for image processing: {tokens_needed}")
 
-    st.image(uploaded_file, caption='Uploaded Image', use_column_width=True)
+        st.image(uploaded_file, caption='Uploaded Image', use_column_width=True)
+        image_key = uploaded_file.name + str(uploaded_file.size)
 
-if uploaded_file is not None and 'uploaded_file' not in st.session_state:
-    st.session_state['uploaded_file'] = uploaded_file  # Save uploaded file into session state
-    response = asyncio.run(handle_image_upload(st.session_state['uploaded_file']))
-    with st.chat_message("assistant"):
-        st.markdown(response)
+        if image_key not in st.session_state:
+            st.session_state[image_key] = uploaded_file  # Save uploaded file into session state
+            response = asyncio.run(handle_image_upload(st.session_state[image_key]))
 
-prompt = st.chat_input("Say something", key="chat_input")
-if prompt:
+
+display_messages()
+
+if prompt := st.chat_input("Say something", key="chat_input"):
     append_message("user", prompt)
-    response = asyncio.run(chat_with_model(st.session_state['messages']))
-    append_message("assistant", response)
-    display_messages()
+    with st.chat_message("user"):
+        st.markdown(prompt)
+    with st.chat_message("assistant"):
+        response = asyncio.run(chat_with_model(st.session_state['messages']))
+        st.markdown(response)
+        append_message("assistant", response)
