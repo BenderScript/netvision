@@ -149,6 +149,72 @@ async def handle_image_upload_agents(file):
     append_message_list(prompt)
     return prompt
 
+# https://platform.openai.com/docs/api-reference/chat/create#chat-create-response_format
+# finish_reason="length"
+async def chat_with_model(session_messages):
+    try:
+        with st.spinner('Working on your prompt, please wait...'):
+            response = await client.chat.completions.create(model="gpt-4-turbo", messages=session_messages)
+            message_response = response.choices[0]
+            content = message_response.message.content
+            finish_reason = message_response.finish_reason
+
+            if finish_reason == 'length':
+                print("Response stopped because the maximum response length was reached.")
+            elif finish_reason == 'stop':
+                print("Response stopped due to reaching a stop sequence.")
+
+            return content
+    except openai.BadRequestError as e:  # Don't forget to add openai
+        # Handle error 400
+        print(f"Error 400: {e}")
+    except openai.AuthenticationError as e:  # Don't forget to add openai
+        # Handle error 401
+        print(f"Error 401: {e}")
+    except openai.PermissionDeniedError as e:  # Don't forget to add openai
+        # Handle error 403
+        print(f"Error 403: {e}")
+    except openai.NotFoundError as e:  # Don't forget to add openai
+        # Handle error 404
+        print(f"Error 404: {e}")
+    except openai.UnprocessableEntityError as e:  # Don't forget to add openai
+        # Handle error 422
+        print(f"Error 422: {e}")
+    except openai.RateLimitError as e:  # Don't forget to add openai
+        # Handle error 429
+        print(f"Error 429: {e}")
+    except openai.InternalServerError as e:  # Don't forget to add openai
+        # Handle error >=500
+        print(f"Error >=500: {e}")
+    except openai.APIConnectionError as e:  # Don't forget to add openai
+        # Handle API connection error
+        print(f"API connection error: {e}")
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+
+
+async def chat_with_model_vision(session_messages):
+    PROMPT_MESSAGES = [
+        {
+            "role": "user",
+            "content": [
+                {
+                    "type": "text",
+                    "text": session_messages[-1]["content"]
+                },
+                {
+                    "type": "image_url",
+                    "image_url": {
+                        "url": st.session_state['image_data']
+                    }
+                }
+            ]
+        }
+    ]
+    with st.spinner('Working on your prompt, please wait...'):
+        response = await client.chat.completions.create(model="gpt-4-turbo", messages=session_messages)
+        return response.choices[0].message.content
+
 st.title('Interactive Networking Image Analysis with GPT-4 Vision')
 
 with st.sidebar:
