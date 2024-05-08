@@ -12,6 +12,7 @@ from PIL import Image
 
 from langchain_core.messages import HumanMessage
 from langchain_openai import ChatOpenAI
+from langchain_core.messages.base import messages_to_dict
 from netvision.chains.builder import build_reflection_chain, build_writer_chain
 from netvision.graph.builder import build_graph
 from netvision.image.process import calculate_image_tokens, encode_image_with_mime_type
@@ -75,12 +76,12 @@ async def process_events(human_prompt, config):
 def display_messages():
     if 'messages' in st.session_state:
         for msg in st.session_state['messages']:
-            with st.chat_message(msg['role']):
-                if isinstance(msg['content'], list):  # Check if content is a list of items
-                    for content in msg['content']:
-                        if content['type'] == 'text':
+            with st.chat_message(msg.type):
+                if isinstance(msg.content, list):  # Check if content is a list of items
+                    for content in msg.content:
+                        if content["type"] == 'text':
                             st.markdown(content['text'])
-                        elif content['type'] == 'image_url':
+                        elif content["type"] == 'image_url':
                             # Assuming the image data comes directly in a base64 format
                             base64_image = content['image_url']['url']
                             header, encoded = base64_image.split(",", 1)
@@ -92,7 +93,7 @@ def display_messages():
                             image = Image.open(BytesIO(data))
                             st.image(image, caption='Uploaded Image', use_column_width=True)
                 else:  # Handle the case where content is a simple string
-                    st.markdown(msg['content'])
+                    st.markdown(msg.content)
 
 
 def append_message(role, content):
@@ -179,7 +180,8 @@ with st.sidebar:
     if uploaded_file := st.file_uploader("Upload your image", type=['png', 'jpg', 'jpeg'], key="file_uploader",
                                          help="Supported formats: PNG, JPG, JPEG"):
 
-        with st.spinner("Analyzing your image..."):
+        with st.status("Working your image..."):
+            st.write("Analyzing image...")
             w, h = get_image_dimensions(uploaded_file)
             tokens_needed = calculate_image_tokens(w, h)
             st.write(f"Estimated token count for image processing: {tokens_needed}")
@@ -189,10 +191,13 @@ with st.sidebar:
 
             if image_key not in st.session_state:
                 st.session_state[image_key] = uploaded_file  # Save uploaded file into session state
+                st.write("Creating Agent Prompt...")
                 initial_prompt = asyncio.run(handle_image_upload_agents(st.session_state[image_key]))
                 netvision_config = st.session_state['netvision_config']
+                st.write("Communicating with Agents...")
                 events = asyncio.run(process_events(human_prompt=initial_prompt,
                                                     config={"configurable": netvision_config.dict()}))
+                append_message_list(events[-1].get("generate").get("messages"))
                 st.write("Analysis complete!")
 
 display_messages()
