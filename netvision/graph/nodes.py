@@ -16,6 +16,7 @@ class AgentState(TypedDict):
     # Here we annotate this with `operator.add` to indicate that operations to
     # this state should be ADDED to the existing values (not overwrite it)
     intermediate_steps: Annotated[list[tuple[AgentAction, str]], operator.add]
+    last_agent: str
 
 
 async def generation_node(state: AgentState, config: Dict) -> Dict[str, list]:

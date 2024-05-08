@@ -1,82 +1,65 @@
 import asyncio
-import mimetypes
 import os
 import pprint
 from io import BytesIO
-from math import ceil
 
+import openai
+from openai import AsyncOpenAI
 import streamlit as st
 import base64
 from dotenv import load_dotenv
 from PIL import Image
 
 from langchain_core.messages import HumanMessage
-
+from langchain_openai import ChatOpenAI
 from netvision.chains.builder import build_reflection_chain, build_writer_chain
 from netvision.graph.builder import build_graph
+from netvision.image.process import calculate_image_tokens, encode_image_with_mime_type
 from netvision.models.config import Config
 
 load_dotenv(override=True)
 
-
+# Set your OpenAI API key here
+load_dotenv(override=True)
+st.session_state['openai_client'] = AsyncOpenAI()
+openai.api_key = os.getenv("OPENAI_API_KEY")
+client = st.session_state['openai_client']
 # os.environ["LANGCHAIN_PROJECT"] = "Netvision-Reflection"
 # os.environ["LANGCHAIN_TRACING_V2"] = "true"
 
 
-# if not st.session_state.get('ChatOpenAI'):
-#     st.session_state['ChatOpenAI'] = ChatOpenAI(api_key= os.getenv("OPENAI_API_KEY"), model="gpt-4-turbo")
+if not st.session_state.get('ChatOpenAI'):
+    st.session_state['ChatOpenAI'] = ChatOpenAI(api_key=os.getenv("OPENAI_API_KEY"), model="gpt-4-turbo")
+
+if not st.session_state.get('netvision_config'):
+    netvision_config = Config()
+    netvision_config.reflection_chain = build_reflection_chain(netvision_config.chat_model)
+    netvision_config.writer_chain = build_writer_chain(netvision_config.chat_model)
+    netvision_config.compiled_graph = build_graph()
+    st.session_state['netvision_config'] = netvision_config
+
+
+def get_image_dimensions(image_file):
+    # Load the image using PIL
+    image = Image.open(uploaded_file)
+    # Extract width and height
+    width, height = image.size
+    st.write(f"Uploaded image dimensions: {width} x {height}")
+    return width, height
 
 
 # https://community.openai.com/t/how-do-i-calculate-image-tokens-in-gpt4-vision/492318
-def calculate_image_tokens(width: int, height: int):
-    if width > 2048 or height > 2048:
-        aspect_ratio = width / height
-        if aspect_ratio > 1:
-            width, height = 2048, int(2048 / aspect_ratio)
-        else:
-            width, height = int(2048 * aspect_ratio), 2048
-
-    if width >= height > 768:
-        width, height = int((768 / height) * width), 768
-    elif height > width > 768:
-        width, height = 768, int((768 / width) * height)
-
-    tiles_width = ceil(width / 512)
-    tiles_height = ceil(height / 512)
-    total_tokens = 85 + 170 * (tiles_width * tiles_height)
-
-    return total_tokens
 
 
 # Specific to streamlit, image_file in this case would be an uploaded file object
-def encode_image_with_mime_type(image_file):
-    mime_type, _ = mimetypes.guess_type(image_file.name)
-    if mime_type is None:
-        raise ValueError("Could not determine the MIME type of the image")
-    encoded_image = base64.b64encode(image_file.read()).decode('utf-8')
-    return f"data:{mime_type};base64,{encoded_image}"
 
 
-def encode_image_path_with_mime_type(image_path):
-    mime_type, _ = mimetypes.guess_type(image_path)
-    if mime_type is None:
-        raise ValueError("Could not determine the MIME type of the image")
-    with open(image_path, "rb") as image_file:
-        encoded_image = base64.b64encode(image_file.read()).decode('utf-8')
-    return f"data:{mime_type};base64,{encoded_image}"
-
-
-netvision_config = Config()
-netvision_config.reflection_chain = build_reflection_chain(netvision_config.chat_model)
-netvision_config.writer_chain = build_writer_chain(netvision_config.chat_model)
-netvision_config.compiled_graph = build_graph()
-config = {"configurable": netvision_config.dict()}
-
-
-async def process_events():
+async def process_events(human_prompt, config):
+    events = []
     async for event in netvision_config.compiled_graph.astream(
-            input={"input": prompt, "messages": prompt}, config=config
+            input={"input": human_prompt, "messages": human_prompt}, config=config
     ):
+        events.append(event)
         if "generate" in event:
             pprint.pprint(event.get("generate").get("messages"))
         elif "reflect" in event:
@@ -84,15 +67,11 @@ async def process_events():
         else:
             pprint.pprint(event)
         print("---")
-
-
-asyncio.run(process_events())
+    return events
 
 
 # https://platform.openai.com/docs/api-reference/chat/create#chat-create-response_format
-finish_reason = "length"
-
-
+# finish_reason = "length"
 def display_messages():
     if 'messages' in st.session_state:
         for msg in st.session_state['messages']:
@@ -133,7 +112,7 @@ async def handle_image_upload_agents(file):
     data_uri = encode_image_with_mime_type(file)
     st.session_state['image_data'] = data_uri  # Store the encoded image in session state
 
-    prompt = [HumanMessage(content=[
+    human_prompt = [HumanMessage(content=[
         {
             "type": "text",
             "text": "Analyze this network diagram"
@@ -146,8 +125,9 @@ async def handle_image_upload_agents(file):
         }
     ])]
 
-    append_message_list(prompt)
-    return prompt
+    append_message_list(human_prompt)
+    return human_prompt
+
 
 # https://platform.openai.com/docs/api-reference/chat/create#chat-create-response_format
 # finish_reason="length"
@@ -193,58 +173,35 @@ async def chat_with_model(session_messages):
         print(f"An unexpected error occurred: {e}")
 
 
-async def chat_with_model_vision(session_messages):
-    PROMPT_MESSAGES = [
-        {
-            "role": "user",
-            "content": [
-                {
-                    "type": "text",
-                    "text": session_messages[-1]["content"]
-                },
-                {
-                    "type": "image_url",
-                    "image_url": {
-                        "url": st.session_state['image_data']
-                    }
-                }
-            ]
-        }
-    ]
-    with st.spinner('Working on your prompt, please wait...'):
-        response = await client.chat.completions.create(model="gpt-4-turbo", messages=session_messages)
-        return response.choices[0].message.content
-
 st.title('Interactive Networking Image Analysis with GPT-4 Vision')
 
 with st.sidebar:
     if uploaded_file := st.file_uploader("Upload your image", type=['png', 'jpg', 'jpeg'], key="file_uploader",
                                          help="Supported formats: PNG, JPG, JPEG"):
-        # Load the image using PIL
-        image = Image.open(uploaded_file)
-        # Extract width and height
-        width, height = image.size
-        st.write(f"Uploaded image dimensions: {width} x {height}")
-        # Calculate tokens required for this image
-        tokens_needed = calculate_image_tokens(width, height)
-        st.write(f"Estimated token count for image processing: {tokens_needed}")
 
-        st.image(uploaded_file, caption='Uploaded Image', use_column_width=True)
-        image_key = uploaded_file.name + str(uploaded_file.size)
+        with st.spinner("Analyzing your image..."):
+            w, h = get_image_dimensions(uploaded_file)
+            tokens_needed = calculate_image_tokens(w, h)
+            st.write(f"Estimated token count for image processing: {tokens_needed}")
 
-        if image_key not in st.session_state:
-            st.session_state[image_key] = uploaded_file  # Save uploaded file into session state
-            response = asyncio.run(handle_image_upload_agents(st.session_state[image_key]))
+            st.image(uploaded_file, caption='Uploaded Image', use_column_width=True)
+            image_key = uploaded_file.name + str(uploaded_file.size)
+
+            if image_key not in st.session_state:
+                st.session_state[image_key] = uploaded_file  # Save uploaded file into session state
+                initial_prompt = asyncio.run(handle_image_upload_agents(st.session_state[image_key]))
+                netvision_config = st.session_state['netvision_config']
+                events = asyncio.run(process_events(human_prompt=initial_prompt,
+                                                    config={"configurable": netvision_config.dict()}))
+                st.write("Analysis complete!")
 
 display_messages()
 
-if prompt := st.chat_input("Say something", key="chat_input"):
-    append_message("user", prompt)
+if user_prompt := st.chat_input("Say something", key="chat_input"):
+    append_message("user", user_prompt)
     with st.chat_message("user"):
-        st.markdown(prompt)
+        st.markdown(user_prompt)
     with st.chat_message("assistant"):
         response = asyncio.run(chat_with_model(st.session_state['messages']))
         st.markdown(response)
         append_message("assistant", response)
-
-
