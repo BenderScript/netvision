@@ -10,7 +10,7 @@ import base64
 from dotenv import load_dotenv
 from PIL import Image
 
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import HumanMessage, AIMessage
 from langchain_openai import ChatOpenAI
 from langchain_core.messages.base import messages_to_dict
 from netvision.chains.builder import build_reflection_chain, build_writer_chain
@@ -135,10 +135,10 @@ async def handle_image_upload_agents(file):
 async def chat_with_model(session_messages):
     try:
         with st.spinner('Working on your prompt, please wait...'):
-            response = await client.chat.completions.create(model="gpt-4-turbo", messages=session_messages)
-            message_response = response.choices[0]
-            content = message_response.message.content
-            finish_reason = message_response.finish_reason
+            chat_model = st.session_state['ChatOpenAI']
+            response = await chat_model.ainvoke(session_messages)
+            content = response.content
+            finish_reason = response.response_metadata.get("finish_reason")
 
             if finish_reason == 'length':
                 print("Response stopped because the maximum response length was reached.")
@@ -203,10 +203,10 @@ with st.sidebar:
 display_messages()
 
 if user_prompt := st.chat_input("Say something", key="chat_input"):
-    append_message("user", user_prompt)
+    append_message_list([HumanMessage(content=[user_prompt])])
     with st.chat_message("user"):
         st.markdown(user_prompt)
     with st.chat_message("assistant"):
         response = asyncio.run(chat_with_model(st.session_state['messages']))
         st.markdown(response)
-        append_message("assistant", response)
+        append_message_list([AIMessage(response)])
