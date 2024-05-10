@@ -7,16 +7,12 @@ from langchain_core.language_models.chat_models import (
 )
 from langgraph.graph.graph import CompiledGraph
 from langchain_core.runnables.base import RunnableSerializable
+from dotenv import load_dotenv
 
 
 class Config(BaseModel):
-    chat_model: Optional[BaseChatModel] = None
-    compiled_graph: Optional[CompiledGraph] = None
-    writer_chain: Optional[RunnableSerializable] = None
-    reflection_chain: Optional[RunnableSerializable] = None
+    initialized: bool = False  # Flag to check if initialization has been done
 
-    def __init__(self, /, *args, **kwargs):
-        super().__init__(**kwargs)
-        if not self.chat_model:
-            self.chat_model = ChatOpenAI(api_key=os.getenv("OPENAI_API_KEY"), model=os.getenv("OPENAI_MODEL_NAME"))
 
+load_dotenv(override=True)
+config = Config()
