@@ -14,5 +14,5 @@ class Config(BaseModel):
     initialized: bool = False  # Flag to check if initialization has been done
 
 
-load_dotenv(override=True)
+# load_dotenv(override=True)
 config = Config()

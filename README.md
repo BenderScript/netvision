@@ -19,7 +19,7 @@ See the application in action:
 
 - Python 3.12+
 - Poetry for dependency management
-- An OpenAI API key
+- An OpenAI API key or Azure OpenAI deployment with vision support
 
 ## Installation
 
@@ -41,6 +41,14 @@ See the application in action:
 1. **Create a `.env` file in the root directory of the project and add your OpenAI API key:**
    ```
    OPENAI_API_KEY=your_openai_api_key
+   ```
+
+2. Alternatively create a .env.azure and add your information such as:
+   ```bash
+   AZURE_OPENAI_API_KEY=<key>
+   AZURE_OPENAI_ENDPOINT=<Azure endpoint URL>
+   AZURE_OPENAI_API_VERSION=2024-02-15-preview
+   AZURE_OPENAI_DEPLOYMENT=<your deployment name>
    ```
 
 ## Running the Application

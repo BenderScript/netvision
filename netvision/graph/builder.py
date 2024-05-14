@@ -3,7 +3,7 @@ from netvision.graph.nodes import generation_node, reflection_node, AgentState
 
 
 def should_continue(state: AgentState):
-    if len(state["messages"]) > 2:
+    if len(state["messages"]) > 3:
         # End after 3 iterations
         return END
     return "reflect"
