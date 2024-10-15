@@ -46,6 +46,7 @@ LEFT_BOX_STYLE = me.Style(
     flex_direction="column",
     align_content="center",
     align_items="center",
+    justify_content="space-between",
     padding=me.Padding.all(16),
 )
 
@@ -58,6 +59,7 @@ RIGHT_BOX_STYLE = me.Style(
     flex_direction="column",
     align_content="center",
     align_items="center",
+    justify_content="space-between",
     padding=me.Padding.all(16),
 )
 
@@ -80,7 +82,7 @@ UPLOADERS_BOX_STYLE = me.Style(
     align_content="start",
     align_items="center",
     width="100%",
-    margin=me.Margin(bottom=50)
+    margin=me.Margin(bottom=20, top=20)
 )
 
 CHAT_BOX_STYLE = me.Style(
@@ -98,14 +100,29 @@ def page():
         header()
         with me.box(style=BOTTOM_BOX_STYLE):
             with me.box(style=LEFT_BOX_STYLE):
-                with me.box(style=UPLOADERS_BOX_STYLE, key="box_with_uploader_1"):
-                    uploader(state=LeftState, key=ChatBox.LEFT)
+                chat_history()
                 box_with_chat(key=ChatBox.LEFT)
-            with me.box(style=RIGHT_BOX_STYLE, key="box_with_uploader_2"):
-                with me.box(style=UPLOADERS_BOX_STYLE, key="box_with_uploader_2"):
-                    uploader(state=RightState, key=ChatBox.RIGHT)    
+                with me.box(style=UPLOADERS_BOX_STYLE, key="box_with_uploader_1"):
+                    uploader(state=LeftState, key=ChatBox.LEFT)                
+            with me.box(style=RIGHT_BOX_STYLE, key="box_with_uploader_2"): 
+                chat_history()
                 box_with_chat(key=ChatBox.RIGHT)
+                with me.box(style=UPLOADERS_BOX_STYLE, key="box_with_uploader_2"):
+                    uploader(state=RightState, key=ChatBox.RIGHT)                   
 
+
+def chat_history():
+    with me.box(
+        style=me.Style(
+            flex_grow=1,  # Allow the chat history to grow
+            max_height="50vh",  # Restrict to 50% of the viewport height
+            overflow_y="auto",  # Allow scrolling if history exceeds max height
+            background="#f0f0f0",
+            padding=me.Padding.all(16),
+            width="100%"
+        )
+    ):
+        me.text("Chat history goes here...")  # Example chat history content
 
 def header():
     with me.box(
@@ -262,10 +279,10 @@ def uploader(state, key):
             width="100%",
             background="grey",
             display="flex",
-            margin=me.Margin.symmetric(
-                horizontal=36,
-                vertical=36,
-            ),
+            # margin=me.Margin.symmetric(
+            #     horizontal=36,
+            #     vertical=36,
+            # ),
             flex_direction="column"
         ),
     ):  
@@ -294,7 +311,11 @@ def uploader(state, key):
                     me.icon("close")  # "X" icon or close button                
                 me.image(
                     src=_convert_contents_data_url(file_state),
+                    style=me.Style(
+                        max_width="100%",  # Image width constrained to the parent box
+                        max_height="200px",  # Maximum height to ensure the image doesn't push other components
+                        object_fit="contain",  # Ensure the image maintains its aspect ratio
+                        margin=me.Margin.all(16),  # Add some margin around the image
+                    ),                    
                 )
-                #me.text(f"File name: {file_state.name}")
-                #me.text(f"File size: {file_state.size}")
-                #me.text(f"File type: {file_state.mime_type}")
+
