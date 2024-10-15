@@ -170,7 +170,7 @@ def chat_input(key):
                     padding=me.Padding(top=16, left=16),
                     outline="none",
                     width="100%",  # Use 100% of the available space in this flex item
-                    height="100px",
+                    height="50px",
                     border=me.Border.all(me.BorderSide(style="none")),
                 ),
                 key=f"{key}_text_area"
@@ -188,8 +188,8 @@ def box_with_chat(key):
                 width="100%",
                 background="grey",
                 margin=me.Margin.symmetric(
-                    horizontal=36,
-                    vertical=36,
+                    horizontal=12,
+                    vertical=12,
                 ),
             ),
             key=key
@@ -213,7 +213,7 @@ def box_with_chat(key):
                 )
                 me.select(
                     style=me.Style(
-                        font_size=18,
+                        font_size=15,
                         margin=me.Margin.symmetric(
                             horizontal=10,
                             vertical=10,
@@ -230,13 +230,13 @@ def box_with_chat(key):
                 )
                 me.select(
                     style=me.Style(
-                        font_size=18,
+                        font_size=15,
                         margin=me.Margin.symmetric(
                             horizontal=10,
                             vertical=10,
                         ),
                     ),                    
-                    label="Select patterns",
+                    label="Select pattern",
                     options=[
                         me.SelectOption(label="ReACT", value="value1"),
                         me.SelectOption(label="Critic", value="value2"),
