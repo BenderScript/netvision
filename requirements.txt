@@ -1,5 +1,5 @@
 python-dotenv==1.0.1
-pillow==10.4.0
+pillow==11.0.0
 langchain-core==0.3.10
 langgraph==0.2.37
 langchain_openai==0.2.2
