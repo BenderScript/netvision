@@ -145,22 +145,23 @@ def box_with_chat(key):
                 me.text(
                     "Chat",
                     style=me.Style(
-                        font_size=15,
+                        font_size=18,
                         margin=me.Margin.symmetric(
-                            horizontal=10,
-                            vertical=10,
+                            horizontal=5,
+                            vertical=5,
                         ),
                     ),
                 )
                 me.select(
                     style=me.Style(
                         height="70px",
+                        font_size=12,
                         margin=me.Margin.symmetric(
-                            horizontal=10,
-                            vertical=10,
+                            horizontal=5,
+                            vertical=5,
                         ),
                     ),                 
-                    label="Select model",
+                    label="Model",
                     options=[
                         me.SelectOption(label=Models.GPT_4_o, value=Models.GPT_4_o),
                         me.SelectOption(label=Models.GPT_4_o_mini, value=Models.GPT_4_o_mini),
@@ -176,14 +177,15 @@ def box_with_chat(key):
                         font_size=12,
                         height="70px",
                         margin=me.Margin.symmetric(
-                            horizontal=10,
-                            vertical=10,
+                            horizontal=5,
+                            vertical=5,
                         ),
                     ),                    
-                    label="Select pattern",
+                    label="Pattern",
                     options=[
-                        me.SelectOption(label="ReACT", value="value1"),
-                        me.SelectOption(label="Critic", value="value2"),
+                        me.SelectOption(label="Direct", value="value1"),
+                        me.SelectOption(label="ReACT", value="value3"),
+                        me.SelectOption(label="Critic", value="value3"),
                     ],
                     on_selection_change=on_select_pattern,
                     multiple=False,
