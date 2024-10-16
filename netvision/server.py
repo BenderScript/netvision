@@ -11,67 +11,14 @@ import mesop as me
 # Add the project root directory to sys.path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from netvision.models.styles import ROOT_BOX_STYLE
+from netvision.models.styles import LEFT_BOX_STYLE
+from netvision.models.styles import RIGHT_BOX_STYLE
+from netvision.models.styles import BOTTOM_BOX_STYLE
+from netvision.models.styles import UPLOADERS_BOX_STYLE
+
 from netvision.models.state import ChatBox, Models, get_state
 
-
-ROOT_BOX_STYLE = me.Style(
-    background="#e7f2ff",
-    height="100vh",
-    font_family="Inter",
-    display="flex",
-    flex_direction="column",
-    align_content="center",
-    align_items="center",
-    padding=me.Padding.all(16),
-)
-
-LEFT_BOX_STYLE = me.Style(
-    background="#e7f2ff",
-    height="100%",
-    width="100%",
-    font_family="Inter",
-    display="flex",
-    flex_direction="column",
-    align_content="center",
-    align_items="center",
-    justify_content="space-between",
-    padding=me.Padding.all(16),
-)
-
-RIGHT_BOX_STYLE = me.Style(
-    background="#e7f2ff",
-    height="100%",
-    width="100%",
-    font_family="Inter",
-    display="flex",
-    flex_direction="column",
-    align_content="center",
-    align_items="center",
-    justify_content="space-between",
-    padding=me.Padding.all(16),
-)
-
-
-BOTTOM_BOX_STYLE = me.Style(
-    background="green",
-    font_family="Inter",
-    display="flex",
-    flex_direction="row",
-    align_content="start",
-    align_items="center",
-    width="100%",    
-)
-
-UPLOADERS_BOX_STYLE = me.Style(
-    background="pink",
-    font_family="Inter",
-    display="flex",
-    flex_direction="column",
-    align_content="start",
-    align_items="center",
-    width="100%",
-    margin=me.Margin(bottom=20, top=20)
-)
 
 @me.page(
     path="/",
@@ -192,13 +139,13 @@ def box_with_chat(key):
                 style=me.Style(
                     display="flex",
                     flex_direction="row",
-                    justify_content="space-between"
+                    justify_content="space-between",
                 )
             ):
                 me.text(
                     "Chat",
                     style=me.Style(
-                        font_size=18,
+                        font_size=15,
                         margin=me.Margin.symmetric(
                             horizontal=10,
                             vertical=10,
@@ -207,7 +154,6 @@ def box_with_chat(key):
                 )
                 me.select(
                     style=me.Style(
-                        font_size=12,
                         height="70px",
                         margin=me.Margin.symmetric(
                             horizontal=10,
@@ -268,10 +214,6 @@ def uploader(key):
             width="100%",
             background="grey",
             display="flex",
-            # margin=me.Margin.symmetric(
-            #     horizontal=36,
-            #     vertical=36,
-            # ),
             flex_direction="column"
         ),
     ):  
