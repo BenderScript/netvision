@@ -3,27 +3,15 @@
 #debugpy.wait_for_client()
 
 import base64
-from enum import StrEnum
+import os
+import sys
+from dotenv import load_dotenv
 import mesop as me
 
+# Add the project root directory to sys.path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-class ChatBox(StrEnum):
-    LEFT="Left"
-    RIGHT="Right"
-
-class Models(StrEnum):
-    GPT_4_o="gpt-4o"
-    GPT_4_o_mini="gpt-4o-mini"
-    Gemini_1_5_Pro = "gemini-1.5-pro"
-
-
-@me.stateclass
-class LeftState:
-    uploader_file: me.UploadedFile = None  # State for the first uploader
-
-@me.stateclass
-class RightState:
-    uploader_file: me.UploadedFile = None  # State for the second uploader
+from netvision.models.state import ChatBox, Models, get_state
 
 
 ROOT_BOX_STYLE = me.Style(
@@ -85,10 +73,6 @@ UPLOADERS_BOX_STYLE = me.Style(
     margin=me.Margin(bottom=20, top=20)
 )
 
-CHAT_BOX_STYLE = me.Style(
-
-)
-
 @me.page(
     path="/",
     stylesheets=[
@@ -96,6 +80,7 @@ CHAT_BOX_STYLE = me.Style(
     ],
 )
 def page():
+    load_dotenv()
     with me.box(style=ROOT_BOX_STYLE):
         header()
         with me.box(style=BOTTOM_BOX_STYLE):
@@ -103,12 +88,12 @@ def page():
                 chat_history()
                 box_with_chat(key=ChatBox.LEFT)
                 with me.box(style=UPLOADERS_BOX_STYLE, key="box_with_uploader_1"):
-                    uploader(state=LeftState, key=ChatBox.LEFT)                
+                    uploader(key=ChatBox.LEFT)                
             with me.box(style=RIGHT_BOX_STYLE, key="box_with_uploader_2"): 
                 chat_history()
                 box_with_chat(key=ChatBox.RIGHT)
                 with me.box(style=UPLOADERS_BOX_STYLE, key="box_with_uploader_2"):
-                    uploader(state=RightState, key=ChatBox.RIGHT)                   
+                    uploader(key=ChatBox.RIGHT)                   
 
 
 def chat_history():
@@ -132,7 +117,7 @@ def header():
         ),
     ):
         me.text(
-            "DuoChat",
+            "Agentic Dashboard",
             style=me.Style(
                 font_weight=500,
                 font_size=24,
@@ -181,7 +166,16 @@ def chat_input(key):
             me.icon("send")
 
 
-def box_with_chat(key):
+def on_select_model(e: me.SelectSelectionChangeEvent):
+    state = get_state(e.key)
+    state.model = e.values[0]
+
+
+def on_select_pattern(e: me.SelectSelectionChangeEvent):
+    state = get_state(e.key)
+    state.pattern = e.values[0]
+
+def box_with_chat(key):   
     with me.box(style=BOTTOM_BOX_STYLE):
         with me.box(
             style=me.Style(
@@ -213,7 +207,8 @@ def box_with_chat(key):
                 )
                 me.select(
                     style=me.Style(
-                        font_size=15,
+                        font_size=12,
+                        height="70px",
                         margin=me.Margin.symmetric(
                             horizontal=10,
                             vertical=10,
@@ -225,12 +220,15 @@ def box_with_chat(key):
                         me.SelectOption(label=Models.GPT_4_o_mini, value=Models.GPT_4_o_mini),
                         me.SelectOption(label=Models.Gemini_1_5_Pro, value=Models.Gemini_1_5_Pro),
                     ],
+                    on_selection_change=on_select_model,
                     multiple=False,
                     appearance="fill",
+                    key=key
                 )
                 me.select(
                     style=me.Style(
-                        font_size=15,
+                        font_size=12,
+                        height="70px",
                         margin=me.Margin.symmetric(
                             horizontal=10,
                             vertical=10,
@@ -241,39 +239,30 @@ def box_with_chat(key):
                         me.SelectOption(label="ReACT", value="value1"),
                         me.SelectOption(label="Critic", value="value2"),
                     ],
+                    on_selection_change=on_select_pattern,
                     multiple=False,
                     appearance="fill",
+                    key=key
                 )                
             chat_input(key)
   
 
 # Function to handle image removal (clicked)
 def handle_remove_image(e: me.ClickEvent):
-    if e.key == ChatBox.LEFT:
-        state = me.state(LeftState)  # Access LeftState
-        state.uploader_file = None   # Update the file for LeftState
-    elif e.key == ChatBox.RIGHT:
-        state = me.state(RightState)  # Access RightState
-        state.uploader_file = None   # Update the file for RightState  
-
+    state = get_state(e.key)
+    state.uploader_file = None
 
 def handle_upload(e: me.UploadEvent):
-    if e.key == ChatBox.LEFT:
-        state = me.state(LeftState)  # Access LeftState
-        state.uploader_file = e.file   # Update the file for LeftState
-        print(e.file)
-    elif e.key == ChatBox.RIGHT:
-        state = me.state(RightState)  # Access RightState
-        state.uploader_file = e.file    # Update the file for RightState    
-
-
+    state = get_state(e.key)
+    state.uploader_file = e.file
+ 
 def _convert_contents_data_url(file: me.UploadedFile) -> str:
   return (
     f"data:{file.mime_type};base64,{base64.b64encode(file.getvalue()).decode()}"
   )
 
-def uploader(state, key):
-    state = me.state(state)  # Use a unique state for each uploader
+def uploader(key):
+    state = get_state(key)
     with me.box(
         style=me.Style(
             width="100%",
